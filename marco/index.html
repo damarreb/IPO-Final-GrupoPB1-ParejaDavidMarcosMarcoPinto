@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>España Explorer - App de Viajes</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        #map {
+            height: 45vh; /* Altura dinámica para que el mapa y el selector encajen en móvil */
+            min-height: 300px;
+            max-height: 500px;
+            width: 100%;
+            border-radius: 1rem;
+            z-index: 1;
+        }
+        /* Amarillo complementario al índigo-600 */
+        .active-tab {
+            color: #fbbf24; /* amber-400 */
+            border-top: 4px solid #fbbf24;
+        }
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .view-content {
+            display: none;
+            padding-bottom: 80px; /* Espacio para la barra inferior */
+        }
+        .view-content.active {
+            display: block;
+        }
+        /* Resaltado amarillo para botones de destino activos */
+        .dest-active {
+            background-color: #fef3c7 !important;
+            border-color: #fbbf24 !important;
+            color: #92400e !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans flex flex-col text-slate-900">
+
+    <!-- CONTENIDO PRINCIPAL (ARRIBA) -->
+    <main class="flex-1 w-full overflow-y-auto">
+        
+        <!-- PANTALLA 1: MAPA Y DESTINOS -->
+        <section id="map-view" class="view-content active p-4 lg:p-8">
+            <header class="mb-4 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl lg:text-3xl font-bold text-indigo-900 tracking-tight">España Explorer</h2>
+                    <p class="text-sm text-slate-500 italic">Planifica tu próxima parada.</p>
+                </div>
+                <div class="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs">JD</div>
+                    <span class="text-sm font-bold text-slate-700 hidden sm:block">Juan Delgado</span>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:gap-6">
+                <!-- Selector de Destinos -->
+                <aside class="xl:col-span-1 space-y-4 order-2 xl:order-1">
+                    <div id="sidebar-content" class="sidebar-scroll grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4 max-h-[35vh] xl:max-h-[400px] overflow-y-auto pr-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                    <button onclick="resetView()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition shadow-md active:scale-95 text-sm sm:text-base">
+                        Resetear Mapa
+                    </button>
+                </aside>
+
+                <!-- Área del Mapa -->
+                <div class="xl:col-span-3 order-1 xl:order-2">
+                    <div id="map" class="border border-slate-200 shadow-sm"></div>
+                    
+                    <!-- Info Panel del Mapa -->
+                    <div id="info-panel" class="mt-4 p-4 sm:p-5 bg-white rounded-xl border-l-8 border-amber-400 shadow-lg hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+                        <button onclick="document.getElementById('info-panel').classList.add('hidden')" class="absolute top-2 right-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full p-1">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                        <div class="flex justify-between items-start pr-6">
+                            <div>
+                                <p id="info-city" class="text-[10px] sm:text-xs font-bold text-amber-600 uppercase tracking-widest"></p>
+                                <h3 id="info-title" class="text-lg sm:text-xl font-bold text-indigo-900 leading-tight"></h3>
+                            </div>
+                        </div>
+                        <p id="info-desc" class="text-sm sm:text-base text-slate-600 mt-2 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA 2: HISTORIAL -->
+        <section id="history-view" class="view-content p-4 lg:p-8">
+            <header class="mb-6 lg:mb-8">
+                <h2 class="text-2xl lg:text-3xl font-bold text-indigo-900">Historial de Viajes</h2>
+                <p class="text-sm text-slate-500">Tus expediciones anteriores.</p>
+            </header>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-6 mb-6 lg:mb-8">
+                <div class="bg-white p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-sm col-span-2 md:col-span-1 text-center md:text-left">
+                    <p class="text-slate-400 text-[10px] lg:text-xs uppercase font-bold tracking-widest">Viajes Totales</p>
+                    <p class="text-3xl lg:text-4xl font-black text-indigo-600">12</p>
+                </div>
+                <div class="bg-white p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-sm text-center md:text-left">
+                    <p class="text-slate-400 text-[10px] lg:text-xs uppercase font-bold tracking-widest">Ciudades</p>
+                    <p class="text-3xl lg:text-4xl font-black text-indigo-600">8</p>
+                </div>
+                <div class="bg-white p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-sm text-center md:text-left">
+                    <p class="text-slate-400 text-[10px] lg:text-xs uppercase font-bold tracking-widest">Km Recorridos</p>
+                    <p class="text-3xl lg:text-4xl font-black text-indigo-600">3,450</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+                <table class="w-full text-left min-w-[500px]">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="p-4 font-bold text-slate-700">Destino</th>
+                            <th class="p-4 font-bold text-slate-700">Fecha</th>
+                            <th class="p-4 font-bold text-slate-700">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr class="hover:bg-amber-50/30 transition-colors">
+                            <td class="p-4 font-medium">Salamanca - Casco Histórico</td>
+                            <td class="p-4 text-slate-500">Octubre 2023</td>
+                            <td class="p-4"><span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-bold uppercase">Finalizado</span></td>
+                        </tr>
+                        <tr class="hover:bg-amber-50/30">
+                            <td class="p-4 font-medium">Barcelona - Costa Brava</td>
+                            <td class="p-4 text-slate-500">Julio 2023</td>
+                            <td class="p-4"><span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-bold uppercase">Finalizado</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PANTALLA 3: CUENTA -->
+        <section id="account-view" class="view-content p-4 lg:p-8">
+            <header class="mb-6 lg:mb-8">
+                <h2 class="text-2xl lg:text-3xl font-bold text-indigo-900">Perfil de Usuario</h2>
+            </header>
+
+            <div class="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden mb-6">
+                <div class="h-24 sm:h-32 bg-indigo-600 relative">
+                    <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0 w-20 h-20 sm:w-24 sm:h-24 bg-amber-400 rounded-2xl flex items-center justify-center text-indigo-900 text-3xl sm:text-4xl font-black shadow-lg border-4 border-white">JD</div>
+                </div>
+                <div class="p-6 sm:p-8 pt-14 sm:pt-16 space-y-5 sm:space-y-6 text-center sm:text-left">
+                    <div>
+                        <h4 class="text-xl sm:text-2xl font-bold text-indigo-900">Juan Delgado</h4>
+                        <p class="text-amber-600 font-bold text-xs sm:text-sm uppercase tracking-tighter">Premium Explorer Edition</p>
+                    </div>
+                    <div class="space-y-3 sm:space-y-4 text-sm sm:text-base text-slate-600 italic leading-relaxed">
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                        <p class="hidden sm:block">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+                    </div>
+                    <div class="pt-5 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <span class="text-xs sm:text-sm text-slate-400">juan.delgado@example.com</span>
+                        <button class="w-full sm:w-auto bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-sm">Ajustes de Perfil</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- BARRA DE NAVEGACIÓN INFERIOR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-20 flex items-center justify-around px-4 z-[1000] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <button onclick="switchView('map-view')" id="nav-map-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 transition-all duration-300 active-tab">
+            <i data-lucide="map" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Mapa</span>
+        </button>
+        <button onclick="switchView('history-view')" id="nav-history-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 transition-all duration-300">
+            <i data-lucide="history" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Viajes</span>
+        </button>
+        <button onclick="switchView('account-view')" id="nav-account-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 transition-all duration-300">
+            <i data-lucide="user" class="w-6 h-6"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Perfil</span>
+        </button>
+    </nav>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        let map;
+        const defaultView = [40.4167, -3.7037];
+        const defaultZoom = 6;
+
+        const pointsData = {
+            "Madrid": {
+                locations: [
+                    { name: "Puerta del Sol", coords: [40.4167, -3.7033], desc: "El corazón de Madrid y origen de las carreteras radiales de España." },
+                    { name: "Parque del Retiro", coords: [40.4131, -3.6831], desc: "Jardín histórico y parque público, principal pulmón verde de la capital." }
+                ]
+            },
+            "Salamanca": {
+                locations: [
+                    { name: "Plaza Mayor", coords: [40.9650, -5.6641], desc: "Obra cumbre del barroco español y centro neurálgico de la ciudad universitaria." },
+                    { name: "Catedral de Salamanca", coords: [40.9606, -5.6661], desc: "Conjunto de dos catedrales unidas, famosa por su fachada plateresca." }
+                ]
+            },
+            "Sevilla": {
+                locations: [
+                    { name: "La Giralda", coords: [37.3862, -5.9925], desc: "Antiguo alminar de la mezquita mayor, hoy campanario de la Catedral." },
+                    { name: "Plaza de España", coords: [37.3772, -5.9869], desc: "Espectacular conjunto arquitectónico encuadrado en el Parque de María Luisa." }
+                ]
+            },
+            "Bilbao": {
+                locations: [
+                    { name: "Museo Guggenheim", coords: [43.2685, -2.9340], desc: "Icono de la arquitectura contemporánea diseñado por Frank Gehry." }
+                ]
+            },
+            "Barcelona": {
+                locations: [
+                    { name: "Sagrada Familia", coords: [41.4036, 2.1744], desc: "La obra maestra inacabada de Antoni Gaudí y símbolo de la ciudad." },
+                    { name: "Parque Güell", coords: [41.4145, 2.1527], desc: "Parque público con jardines y elementos arquitectónicos singulares." }
+                ]
+            }
+        };
+
+        window.onload = function() {
+            lucide.createIcons();
+            initMap();
+            renderSidebar();
+            addMarkers();
+        };
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView(defaultView, defaultZoom);
+            L.control.zoom({ position: 'topright' }).addTo(map);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(item => item.classList.remove('active-tab'));
+
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById('nav-' + viewId).classList.add('active-tab');
+
+            if (viewId === 'map-view') {
+                setTimeout(() => map.invalidateSize(), 200);
+            }
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('sidebar-content');
+            container.innerHTML = '';
+            
+            for (const city in pointsData) {
+                const section = document.createElement('div');
+                section.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm";
+                
+                let buttonsHtml = '';
+                pointsData[city].locations.forEach(loc => {
+                    buttonsHtml += `
+                        <button onclick="focusLocation(${loc.coords[0]}, ${loc.coords[1]}, 15, '${city}', '${loc.name}', this)" 
+                                class="location-btn w-full text-left p-2 rounded-lg hover:bg-indigo-50 text-sm border border-transparent transition-all">
+                            ${loc.name}
+                        </button>
+                    `;
+                });
+
+                section.innerHTML = `
+                    <h2 class="font-black text-xs mb-3 flex items-center gap-2 text-indigo-900 uppercase tracking-tighter">
+                        <span class="text-amber-500 italic">●</span> ${city}
+                    </h2>
+                    <div class="space-y-1">${buttonsHtml}</div>
+                `;
+                container.appendChild(section);
+            }
+        }
+
+        function addMarkers() {
+            for (const city in pointsData) {
+                pointsData[city].locations.forEach(loc => {
+                    const marker = L.marker(loc.coords).addTo(map);
+                    marker.on('click', () => showInfo(city, loc));
+                });
+            }
+        }
+
+        function focusLocation(lat, lng, zoom, cityName, locName, btn) {
+            // Manejo visual de botones
+            document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('dest-active'));
+            if(btn) btn.classList.add('dest-active');
+
+            map.flyTo([lat, lng], zoom, { duration: 1.5 });
+            const location = pointsData[cityName].locations.find(l => l.name === locName);
+            if (location) showInfo(cityName, location);
+        }
+
+        function resetView() {
+            map.flyTo(defaultView, defaultZoom);
+            document.getElementById('info-panel').classList.add('hidden');
+            document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('dest-active'));
+        }
+
+        function showInfo(cityName, location) {
+            const panel = document.getElementById('info-panel');
+            document.getElementById('info-title').innerText = location.name;
+            document.getElementById('info-city').innerText = cityName;
+            document.getElementById('info-desc').innerText = location.desc;
+            panel.classList.remove('hidden');
+            
+            // Re-renderizamos iconos de Lucide por si se acaba de mostrar el botón de cierre
+            lucide.createIcons();
+            
+            // En móviles, hacer scroll suave hacia la tarjeta de información
+            if (window.innerWidth < 1280) {
+                setTimeout(() => {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        }
+    </script>
+</body>
+</html>
