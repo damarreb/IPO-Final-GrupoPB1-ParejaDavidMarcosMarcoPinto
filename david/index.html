@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nexus Instant - Red Global de Teletransporte</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --bg-color: #060a0f;
+            --accent-emerald: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+        }
+
+        .glass-panel {
+            background: rgba(15, 25, 20, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 197, 94, 0.15);
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #0f1a14;
+            color: #f0fdf4;
+            border-radius: 12px;
+            padding: 2px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .quantum-line {
+            stroke-dasharray: 8, 8;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
+
+        .scanner-line {
+            height: 2px;
+            background: #4ade80;
+            box-shadow: 0 0 15px #22c55e;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        /* Animación de fondo para el éxito */
+        .success-bg-animated {
+            background: radial-gradient(circle at center, #064e3b 0%, #060a0f 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 10s ease infinite;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .floating-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle, #10b981 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.2;
+            animation: floatParticles 20s linear infinite;
+        }
+
+        @keyframes floatParticles {
+            from { transform: translateY(0); }
+            to { transform: translateY(-50px); }
+        }
+
+        .arrival-card {
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation-delay: 0.3s;
+        }
+
+        @keyframes slideUp {
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="text-emerald-50 flex flex-col">
+
+    <!-- Cabecera Compacta -->
+    <header class="h-14 sm:h-16 flex-none flex justify-between items-center px-4 sm:px-6 border-b border-emerald-900/30 glass-panel z-50">
+        <div class="flex items-center gap-2">
+            <div class="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-full flex items-center justify-center animate-pulse">
+                <div class="w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full"></div>
+            </div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tighter text-white uppercase">Nexus <span class="text-emerald-400">Instant</span></h1>
+        </div>
+        <div class="hidden md:block text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 font-mono">
+            V-1.6 | PROTOCOLO DE ARRIBO
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="flex-1 flex flex-col p-2 sm:p-4 gap-2 sm:gap-4 overflow-hidden">
+        
+        <!-- Área del Mapa -->
+        <div class="flex-1 relative glass-panel rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+            <div class="flex-none flex justify-between items-center p-3 sm:p-4 bg-black/20">
+                <h2 class="text-sm sm:text-base font-semibold flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Mapa de Red
+                </h2>
+                <span id="status-tag" class="text-[10px] sm:text-xs text-emerald-500/60 font-medium italic truncate ml-2">Listo para vincular</span>
+            </div>
+            <div id="map" class="flex-1"></div>
+        </div>
+
+        <!-- Panel de Control Inferior -->
+        <div class="flex-none grid grid-cols-1 md:grid-cols-4 gap-2 sm:gap-4 h-auto md:h-28">
+            <div class="md:col-span-3 glass-panel p-3 sm:p-4 rounded-xl flex flex-row gap-4 items-center justify-around">
+                <div class="text-center md:text-left flex-1 min-w-0">
+                    <p class="text-[8px] sm:text-[10px] text-emerald-700 uppercase tracking-widest font-bold">Origen</p>
+                    <p id="origin-display" class="font-bold text-cyan-400 text-sm sm:text-lg italic truncate">Seleccione nodo...</p>
+                </div>
+                
+                <div class="flex-none text-emerald-900/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </div>
+
+                <div class="text-center md:text-right flex-1 min-w-0">
+                    <p class="text-[8px] sm:text-[10px] text-emerald-700 uppercase tracking-widest font-bold">Destino</p>
+                    <p id="destination-display" class="font-bold text-lime-400 text-sm sm:text-lg italic truncate">Seleccione nodo...</p>
+                </div>
+            </div>
+
+            <div class="glass-panel p-2 rounded-xl border border-emerald-500/20 flex items-center h-14 md:h-full">
+                <button id="jump-btn" disabled class="w-full h-full rounded-lg bg-slate-900 text-emerald-900 font-bold text-xs sm:text-sm cursor-not-allowed transition-all uppercase tracking-widest overflow-hidden">
+                    SALTAR
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de QR (Paso previo) -->
+    <div id="qr-screen" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl transition-all duration-300 translate-y-full">
+        <div class="max-w-xs w-full glass-panel p-6 rounded-2xl text-center space-y-4 shadow-2xl">
+            <h2 class="text-xl font-bold text-white uppercase tracking-tighter">Acceso de Usuario</h2>
+            <div class="mx-auto w-48 h-48 bg-white p-2 rounded-lg relative overflow-hidden">
+                <div class="scanner-line"></div>
+                <svg viewBox="0 0 100 100" class="w-full h-full fill-slate-900">
+                    <path d="M10,10 h30 v30 h-30 z M15,15 h20 v20 h-20 z M22,22 h6 v6 h-6 z" />
+                    <path d="M60,10 h30 v30 h-30 z M65,15 h20 v20 h-20 z M72,22 h6 v6 h-6 z" />
+                    <path d="M10,60 h30 v30 h-30 z M15,65 h20 v20 h-20 z M22,72 h6 v6 h-6 z" />
+                    <path d="M45,10 h10 v10 h-10 z M45,25 h5 v5 h-5 z M55,25 h5 v5 h-5 z M45,40 h15 v5 h-15 z M10,45 h10 v5 h-10 z M25,45 h10 v10 h-10 z M45,55 h5 v10 h-5 z M55,55 h10 v5 h-10 z M70,45 h20 v5 h-20 z M70,55 h10 v20 h-10 z M85,55 h5 v5 h-5 z M85,65 h5 v25 h-5 z M45,70 h20 v10 h-20 z M45,85 h10 v5 h-10 z M60,85 h20 v5 h-20 z" />
+                </svg>
+            </div>
+            <div class="flex flex-col gap-2">
+                <button id="sim-scan-btn" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg text-sm">AUTORIZAR</button>
+                <button onclick="cancelQR()" class="text-emerald-700 text-xs font-semibold">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla Final con Animación Inmersiva -->
+    <div id="final-screen" class="hidden fixed inset-0 z-[200] opacity-0 pointer-events-none transition-opacity duration-1000">
+        <div class="success-bg-animated">
+            <div class="floating-particles"></div>
+            <div class="flex items-center justify-center h-full p-6">
+                <div class="arrival-card text-center space-y-8 max-w-sm w-full glass-panel p-10 rounded-3xl border-2 border-emerald-400/30">
+                    <div class="relative inline-block">
+                        <div class="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse"></div>
+                        <div class="relative w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <h1 class="text-4xl font-black text-white uppercase tracking-tighter leading-none">Arribo<br><span class="text-emerald-400">Completado</span></h1>
+                        <p class="text-emerald-300/80 text-sm font-medium pt-2">Protocolo de descompresión activo</p>
+                    </div>
+
+                    <div class="bg-black/40 rounded-2xl p-4 border border-emerald-900/50">
+                        <p id="success-msg" class="text-emerald-50 text-base font-semibold italic"></p>
+                    </div>
+                    
+                    <button onclick="location.reload()" class="w-full bg-white text-emerald-950 font-black py-4 px-8 rounded-2xl text-sm uppercase tracking-widest hover:bg-emerald-50 transition-all transform active:scale-95 shadow-xl shadow-black/20">
+                        NUEVO VIAJE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Efecto de Destello Blanco (Flash) -->
+    <div id="jump-overlay" class="fixed inset-0 bg-white z-[250] opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const stations = [
+            { id: 1, name: "Nexus Madrid", coords: [40.4168, -3.7038] },
+            { id: 6, name: "Nexus London", coords: [51.5074, -0.1278] },
+            { id: 7, name: "Nexus Paris", coords: [48.8566, 2.3522] },
+            { id: 8, name: "Nexus Berlin", coords: [52.5200, 13.4050] },
+            { id: 9, name: "Nexus New York", coords: [40.7128, -74.0060] },
+            { id: 10, name: "Nexus Los Angeles", coords: [34.0522, -118.2437] },
+            { id: 11, name: "Nexus Mexico City", coords: [19.4326, -99.1332] },
+            { id: 12, name: "Nexus Tokyo", coords: [35.6762, 139.6503] },
+            { id: 13, name: "Nexus Singapore", coords: [1.3521, 103.8198] },
+            { id: 14, name: "Nexus Shanghai", coords: [31.2304, 121.4737] },
+            { id: 15, name: "Nexus São Paulo", coords: [-23.5505, -46.6333] },
+            { id: 16, name: "Nexus Sydney", coords: [-33.8688, 151.2093] },
+            { id: 17, name: "Nexus Cape Town", coords: [-33.9249, 18.4241] }
+        ];
+
+        let map, originStation, destinationStation;
+        let markers = []; 
+        let connectionLines = []; 
+
+        function initMap() {
+            map = L.map('map', { 
+                zoomControl: true,
+                worldCopyJump: true,
+                minZoom: 2,
+                maxZoom: 10,
+                attributionControl: false
+            }).setView([20, 0], 2);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            renderMarkers();
+            setTimeout(() => map.invalidateSize(), 500);
+        }
+
+        function renderMarkers() {
+            stations.forEach(station => {
+                const offsets = [-360, 0, 360];
+                offsets.forEach(offset => {
+                    const marker = L.circleMarker([station.coords[0], station.coords[1] + offset], {
+                        radius: 7,
+                        fillColor: "#10b981",
+                        color: "#064e3b",
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+
+                    markers.push({ id: station.id, offset, marker });
+
+                    marker.on('click', function() {
+                        const popupContent = `
+                            <div class="p-1">
+                                <h3 class="font-bold text-sm text-white">${station.name}</h3>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="selectRoute('origin', ${station.id})" class="flex-1 bg-cyan-600 text-white text-[10px] py-1.5 rounded font-bold uppercase">Origen</button>
+                                    <button onclick="selectRoute('destination', ${station.id})" class="flex-1 bg-lime-600 text-white text-[10px] py-1.5 rounded font-bold uppercase">Destino</button>
+                                </div>
+                            </div>
+                        `;
+                        marker.bindPopup(popupContent).openPopup();
+                    });
+                });
+            });
+        }
+
+        window.selectRoute = function(type, id) {
+            const station = stations.find(s => s.id === id);
+            if (type === 'origin') {
+                if (destinationStation && destinationStation.id === id) clearStation('destination');
+                originStation = station;
+                updateDisplay('origin', station.name);
+            } else {
+                if (originStation && originStation.id === id) clearStation('origin');
+                destinationStation = station;
+                updateDisplay('destination', station.name);
+            }
+            map.closePopup();
+            updateMapVisuals();
+            updateJumpButton();
+        };
+
+        function clearStation(type) {
+            if (type === 'origin') { originStation = null; updateDisplay('origin', "Seleccione nodo..."); }
+            else { destinationStation = null; updateDisplay('destination', "Seleccione nodo..."); }
+        }
+
+        function updateDisplay(type, text) {
+            const el = document.getElementById(`${type}-display`);
+            el.textContent = text;
+            if (text.includes("Seleccione")) {
+                el.classList.add('italic');
+                el.classList.remove('text-cyan-400', 'text-lime-400', 'text-emerald-400');
+            } else {
+                el.classList.remove('italic');
+                el.classList.add(type === 'origin' ? 'text-cyan-400' : 'text-lime-400');
+            }
+        }
+
+        function updateMapVisuals() {
+            connectionLines.forEach(l => l.remove());
+            connectionLines = [];
+            
+            // Resetear todos los marcadores a su estado original
+            markers.forEach(m => m.marker.setStyle({ 
+                fillColor: "#10b981", 
+                color: "#064e3b", 
+                radius: 7,
+                weight: 2
+            }));
+
+            // Resaltar origen con color CIAN distintivo
+            if (originStation) {
+                markers.filter(m => m.id === originStation.id).forEach(m => {
+                    m.marker.setStyle({ 
+                        fillColor: "#22d3ee", // Cian 400
+                        color: "#fff", 
+                        radius: 12, 
+                        weight: 4 
+                    });
+                });
+            }
+
+            // Resaltar destino con color LIMA
+            if (destinationStation) {
+                markers.filter(m => m.id === destinationStation.id).forEach(m => {
+                    m.marker.setStyle({ 
+                        fillColor: "#a3e635", // Lima 400
+                        color: "#fff", 
+                        radius: 12, 
+                        weight: 4 
+                    });
+                });
+            }
+
+            // Dibujar línea si ambos están seleccionados
+            if (originStation && destinationStation) {
+                const line = L.polyline([originStation.coords, destinationStation.coords], {
+                    color: '#22d3ee', weight: 2, opacity: 0.6, className: 'quantum-line'
+                }).addTo(map);
+                connectionLines.push(line);
+            }
+
+            const status = document.getElementById('status-tag');
+            status.textContent = (originStation && destinationStation) ? "Vector de salto calculado" : (originStation || destinationStation ? "Ajustando coordenadas..." : "Listo para vincular");
+        }
+
+        function updateJumpButton() {
+            const btn = document.getElementById('jump-btn');
+            if (originStation && destinationStation) {
+                btn.disabled = false;
+                btn.className = "w-full h-full rounded-lg bg-emerald-600 text-white font-bold text-xs cursor-pointer transition-all uppercase tracking-widest";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full h-full rounded-lg bg-slate-900 text-emerald-900 font-bold text-xs cursor-not-allowed";
+            }
+        }
+
+        document.getElementById('jump-btn').addEventListener('click', () => {
+            document.getElementById('qr-screen').classList.remove('hidden', 'translate-y-full');
+        });
+
+        window.cancelQR = function() {
+            document.getElementById('qr-screen').classList.add('translate-y-full');
+            setTimeout(() => document.getElementById('qr-screen').classList.add('hidden'), 300);
+        }
+
+        document.getElementById('sim-scan-btn').addEventListener('click', function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = "SALTANDO...";
+            
+            setTimeout(() => {
+                const flash = document.getElementById('jump-overlay');
+                flash.style.opacity = "1";
+                
+                setTimeout(() => {
+                    document.getElementById('success-msg').textContent = `${destinationStation.name} te da la bienvenida.`;
+                    document.getElementById('qr-screen').classList.add('hidden');
+                    const final = document.getElementById('final-screen');
+                    final.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        final.classList.add('opacity-100');
+                        final.classList.remove('pointer-events-none');
+                        flash.style.opacity = "0";
+                    }, 50);
+                }, 200);
+            }, 800);
+        });
+
+        window.onload = initMap;
+        window.onresize = () => map.invalidateSize();
+    </script>
+</body>
+</html>
