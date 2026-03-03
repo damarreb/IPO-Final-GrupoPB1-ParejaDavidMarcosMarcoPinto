@@ -1,0 +1,45 @@
+name: Deploy GitHub Pages (multi-branch)
+
+on:
+  push:
+    branches:
+      - boceto-marco
+      - boceto-david
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Select target folder
+        id: target
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "boceto-marco" ]; then
+            echo "folder=marco" >> "$GITHUB_OUTPUT"
+          else
+            echo "folder=david" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build publish directory
+        run: |
+          mkdir -p "_site/${{ steps.target.outputs.folder }}"
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='_site' \
+            ./ "_site/${{ steps.target.outputs.folder }}/"
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./_site
+          keep_files: true
