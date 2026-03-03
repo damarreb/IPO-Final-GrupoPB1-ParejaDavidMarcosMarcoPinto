@@ -363,12 +363,30 @@
                 });
             }
 
-            // Dibujar línea si ambos están seleccionados
+            // Dibujar línea si ambos están seleccionados (en todos los mapas renderizados)
             if (originStation && destinationStation) {
-                const line = L.polyline([originStation.coords, destinationStation.coords], {
-                    color: '#22d3ee', weight: 2, opacity: 0.6, className: 'quantum-line'
-                }).addTo(map);
-                connectionLines.push(line);
+                let lat1 = originStation.coords[0];
+                let lng1 = originStation.coords[1];
+                let lat2 = destinationStation.coords[0];
+                let lng2 = destinationStation.coords[1];
+
+                // Calcular el trayecto más corto (cruzar el antimeridiano si es necesario)
+                if (lng2 - lng1 > 180) {
+                    lng2 -= 360;
+                } else if (lng1 - lng2 > 180) {
+                    lng2 += 360;
+                }
+
+                const offsets = [-360, 0, 360];
+                offsets.forEach(offset => {
+                    const line = L.polyline([
+                        [lat1, lng1 + offset], 
+                        [lat2, lng2 + offset]
+                    ], {
+                        color: '#10b981', weight: 2, opacity: 0.6, className: 'quantum-line'
+                    }).addTo(map);
+                    connectionLines.push(line);
+                });
             }
 
             const status = document.getElementById('status-tag');
