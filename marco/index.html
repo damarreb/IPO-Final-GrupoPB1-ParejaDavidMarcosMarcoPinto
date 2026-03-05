@@ -3,11 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>España Explorer - App de Viajes</title>
+    <title>Nexus Instant - App de Viajes</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
@@ -15,15 +32,19 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        body {
+            background-color: #0f172a; /* slate-900 */
+            color: #f8fafc; /* slate-50 */
+        }
         #map {
-            height: 45vh; /* Altura dinámica para que el mapa y el selector encajen en móvil */
+            height: 45vh;
             min-height: 300px;
             max-height: 500px;
             width: 100%;
             border-radius: 1rem;
             z-index: 1;
         }
-        /* Amarillo complementario al índigo-600 */
+        /* Amarillo complementario al índigo */
         .active-tab {
             color: #fbbf24; /* amber-400 */
             border-top: 4px solid #fbbf24;
@@ -32,69 +53,151 @@
             width: 4px;
         }
         .sidebar-scroll::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #475569; /* slate-600 */
             border-radius: 10px;
         }
         .view-content {
             display: none;
-            padding-bottom: 80px; /* Espacio para la barra inferior */
+            padding-bottom: 80px;
         }
         .view-content.active {
             display: block;
         }
-        /* Resaltado amarillo para botones de destino activos */
         .dest-active {
-            background-color: #fef3c7 !important;
+            background-color: #334155 !important; /* slate-700 */
             border-color: #fbbf24 !important;
-            color: #92400e !important;
+            color: #fbbf24 !important;
+        }
+        
+        /* Select dropdown dark mode fixes */
+        select option {
+            background-color: #1e293b;
+            color: #f8fafc;
+        }
+
+        /* Toast Animation */
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        .toast-enter { animation: slideInUp 0.3s ease-out forwards; }
+        .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
+        
+        /* Ajustes para el popup de Leaflet en Dark Mode */
+        .leaflet-popup-content-wrapper {
+            background-color: #1e293b !important; /* slate-800 */
+            border: 1px solid #334155 !important; /* slate-700 */
+            border-radius: 0.75rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+        }
+        .leaflet-popup-tip {
+            background-color: #1e293b !important; /* slate-800 */
+            border-top: 1px solid #334155 !important;
+            border-left: 1px solid #334155 !important;
+        }
+        /* Contenedor transparente para nuestros iconos personalizados */
+        .custom-marker {
+            background: transparent;
+            border: none;
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans flex flex-col text-slate-900">
+<body class="min-h-screen font-sans flex flex-col">
 
-    <!-- CONTENIDO PRINCIPAL (ARRIBA) -->
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] flex flex-col gap-2 w-[90%] max-w-md pointer-events-none"></div>
+
+    <!-- Modal de Confirmación de Viaje -->
+    <div id="trip-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[3000] hidden flex items-center justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 text-center flex flex-col items-center">
+            <h3 class="text-xl font-bold text-white mb-1" id="modal-title">Generando billete...</h3>
+            <p class="text-sm text-slate-400 mb-5" id="modal-desc"></p>
+            
+            <div class="bg-white p-3 rounded-xl shadow-inner mb-6 relative">
+                <!-- Imagen del QR que se cargará dinámicamente -->
+                <img id="modal-qr" src="" alt="QR Code del Destino" class="w-32 h-32" />
+            </div>
+
+            <div class="flex gap-3 w-full">
+                <button onclick="cancelarViaje()" class="flex-1 py-2.5 bg-slate-700 text-white rounded-lg font-bold hover:bg-slate-600 transition-colors shadow-sm active:scale-95 text-sm">
+                    Cancelar
+                </button>
+                <button onclick="confirmarViaje()" class="flex-1 py-2.5 bg-emerald-500 text-slate-900 rounded-lg font-bold hover:bg-emerald-400 transition-colors shadow-sm active:scale-95 text-sm flex justify-center items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Marcar Hecho
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-1 w-full overflow-y-auto">
         
         <!-- PANTALLA 1: MAPA Y DESTINOS -->
         <section id="map-view" class="view-content active p-4 lg:p-8">
             <header class="mb-4 flex justify-between items-center">
                 <div>
-                    <h2 class="text-2xl lg:text-3xl font-bold text-indigo-900 tracking-tight">España Explorer</h2>
-                    <p class="text-sm text-slate-500 italic">Planifica tu próxima parada.</p>
+                    <h2 class="text-2xl lg:text-3xl font-bold text-white tracking-tight">Nexus Instant</h2>
+                    <p class="text-sm text-slate-400 italic">Planifica tu próxima parada.</p>
                 </div>
-                <div class="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs">JD</div>
-                    <span class="text-sm font-bold text-slate-700 hidden sm:block">Juan Delgado</span>
+                <div class="flex items-center gap-3 bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-700">
+                    <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-xs">JD</div>
+                    <span class="text-sm font-bold text-slate-200 hidden sm:block">Juan Delgado</span>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 xl:grid-cols-4 gap-4 xl:gap-6">
-                <!-- Selector de Destinos -->
+                <!-- Selector de Destinos y Planificador -->
                 <aside class="xl:col-span-1 space-y-4 order-2 xl:order-1">
-                    <div id="sidebar-content" class="sidebar-scroll grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4 max-h-[35vh] xl:max-h-[400px] overflow-y-auto pr-2">
+                    
+                    <!-- Tarjeta de Planificación -->
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
+                        <h3 class="font-bold text-amber-400 mb-3 text-xs uppercase tracking-widest flex items-center gap-2">
+                            <i data-lucide="route" class="w-4 h-4"></i> Nuevo Viaje
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1 uppercase tracking-wider font-bold">Origen</label>
+                                <select id="origen-select" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm text-slate-200 focus:border-amber-400 focus:outline-none transition-colors"></select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1 uppercase tracking-wider font-bold">Destino</label>
+                                <select id="destino-select" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm text-slate-200 focus:border-amber-400 focus:outline-none transition-colors"></select>
+                            </div>
+                            <button onclick="efectuarViaje()" class="w-full py-2.5 mt-2 bg-amber-500 text-slate-900 rounded-lg font-bold hover:bg-amber-400 transition-colors shadow-lg active:scale-95 text-sm flex justify-center items-center gap-2">
+                                <i data-lucide="navigation" class="w-4 h-4"></i> Efectuar Viaje
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Exploración -->
+                    <div id="sidebar-content" class="sidebar-scroll grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4 max-h-[30vh] xl:max-h-[300px] overflow-y-auto pr-2">
                         <!-- Generado dinámicamente -->
                     </div>
-                    <button onclick="resetView()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition shadow-md active:scale-95 text-sm sm:text-base">
+                    <button onclick="resetView()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-500 transition shadow-md active:scale-95 text-sm sm:text-base border border-indigo-500/50">
                         Resetear Mapa
                     </button>
                 </aside>
 
                 <!-- Área del Mapa -->
                 <div class="xl:col-span-3 order-1 xl:order-2">
-                    <div id="map" class="border border-slate-200 shadow-sm"></div>
+                    <div id="map" class="border border-slate-700 shadow-xl"></div>
                     
                     <!-- Info Panel del Mapa -->
-                    <div id="info-panel" class="mt-4 p-4 sm:p-5 bg-white rounded-xl border-l-8 border-amber-400 shadow-lg hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
-                        <button onclick="document.getElementById('info-panel').classList.add('hidden')" class="absolute top-2 right-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full p-1">
+                    <div id="info-panel" class="mt-4 p-4 sm:p-5 bg-slate-800 rounded-xl border-l-8 border-amber-400 shadow-lg hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+                        <button onclick="document.getElementById('info-panel').classList.add('hidden')" class="absolute top-2 right-2 text-slate-400 hover:text-white bg-slate-700 rounded-full p-1 transition-colors">
                             <i data-lucide="x" class="w-4 h-4"></i>
                         </button>
                         <div class="flex justify-between items-start pr-6">
                             <div>
-                                <p id="info-city" class="text-[10px] sm:text-xs font-bold text-amber-600 uppercase tracking-widest"></p>
-                                <h3 id="info-title" class="text-lg sm:text-xl font-bold text-indigo-900 leading-tight"></h3>
+                                <p id="info-city" class="text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-widest"></p>
+                                <h3 id="info-title" class="text-lg sm:text-xl font-bold text-white leading-tight"></h3>
                             </div>
                         </div>
-                        <p id="info-desc" class="text-sm sm:text-base text-slate-600 mt-2 leading-relaxed"></p>
+                        <p id="info-desc" class="text-sm sm:text-base text-slate-300 mt-2 leading-relaxed"></p>
                     </div>
                 </div>
             </div>
@@ -103,45 +206,37 @@
         <!-- PANTALLA 2: HISTORIAL -->
         <section id="history-view" class="view-content p-4 lg:p-8">
             <header class="mb-6 lg:mb-8">
-                <h2 class="text-2xl lg:text-3xl font-bold text-indigo-900">Historial de Viajes</h2>
-                <p class="text-sm text-slate-500">Tus expediciones anteriores.</p>
+                <h2 class="text-2xl lg:text-3xl font-bold text-white">Historial de Viajes</h2>
+                <p class="text-sm text-slate-400">Tus expediciones registradas en Nexus.</p>
             </header>
 
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-6 mb-6 lg:mb-8">
-                <div class="bg-white p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-sm col-span-2 md:col-span-1 text-center md:text-left">
+                <div class="bg-slate-800 p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-md col-span-2 md:col-span-1 text-center md:text-left">
                     <p class="text-slate-400 text-[10px] lg:text-xs uppercase font-bold tracking-widest">Viajes Totales</p>
-                    <p class="text-3xl lg:text-4xl font-black text-indigo-600">12</p>
+                    <p id="stat-trips" class="text-3xl lg:text-4xl font-black text-white">0</p>
                 </div>
-                <div class="bg-white p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-sm text-center md:text-left">
+                <div class="bg-slate-800 p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-md text-center md:text-left">
                     <p class="text-slate-400 text-[10px] lg:text-xs uppercase font-bold tracking-widest">Ciudades</p>
-                    <p class="text-3xl lg:text-4xl font-black text-indigo-600">8</p>
+                    <p id="stat-cities" class="text-3xl lg:text-4xl font-black text-white">0</p>
                 </div>
-                <div class="bg-white p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-sm text-center md:text-left">
+                <div class="bg-slate-800 p-4 lg:p-6 rounded-xl border-b-4 border-amber-400 shadow-md text-center md:text-left">
                     <p class="text-slate-400 text-[10px] lg:text-xs uppercase font-bold tracking-widest">Km Recorridos</p>
-                    <p class="text-3xl lg:text-4xl font-black text-indigo-600">3,450</p>
+                    <p id="stat-km" class="text-3xl lg:text-4xl font-black text-white">0</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+            <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-x-auto shadow-md">
                 <table class="w-full text-left min-w-[500px]">
-                    <thead class="bg-slate-50 border-b border-slate-200">
+                    <thead class="bg-slate-900 border-b border-slate-700">
                         <tr>
-                            <th class="p-4 font-bold text-slate-700">Destino</th>
-                            <th class="p-4 font-bold text-slate-700">Fecha</th>
-                            <th class="p-4 font-bold text-slate-700">Estado</th>
+                            <th class="p-4 font-bold text-slate-300">Ruta / Destino</th>
+                            <th class="p-4 font-bold text-slate-300">Distancia</th>
+                            <th class="p-4 font-bold text-slate-300">Fecha</th>
+                            <th class="p-4 font-bold text-slate-300">Estado</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr class="hover:bg-amber-50/30 transition-colors">
-                            <td class="p-4 font-medium">Salamanca - Casco Histórico</td>
-                            <td class="p-4 text-slate-500">Octubre 2023</td>
-                            <td class="p-4"><span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-bold uppercase">Finalizado</span></td>
-                        </tr>
-                        <tr class="hover:bg-amber-50/30">
-                            <td class="p-4 font-medium">Barcelona - Costa Brava</td>
-                            <td class="p-4 text-slate-500">Julio 2023</td>
-                            <td class="p-4"><span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-bold uppercase">Finalizado</span></td>
-                        </tr>
+                    <tbody id="history-tbody" class="divide-y divide-slate-700/50">
+                        <!-- Generado dinámicamente -->
                     </tbody>
                 </table>
             </div>
@@ -150,25 +245,25 @@
         <!-- PANTALLA 3: CUENTA -->
         <section id="account-view" class="view-content p-4 lg:p-8">
             <header class="mb-6 lg:mb-8">
-                <h2 class="text-2xl lg:text-3xl font-bold text-indigo-900">Perfil de Usuario</h2>
+                <h2 class="text-2xl lg:text-3xl font-bold text-white">Perfil de Usuario</h2>
             </header>
 
-            <div class="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden mb-6">
+            <div class="max-w-2xl mx-auto bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden mb-6">
                 <div class="h-24 sm:h-32 bg-indigo-600 relative">
-                    <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0 w-20 h-20 sm:w-24 sm:h-24 bg-amber-400 rounded-2xl flex items-center justify-center text-indigo-900 text-3xl sm:text-4xl font-black shadow-lg border-4 border-white">JD</div>
+                    <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0 w-20 h-20 sm:w-24 sm:h-24 bg-amber-400 rounded-2xl flex items-center justify-center text-slate-900 text-3xl sm:text-4xl font-black shadow-lg border-4 border-slate-800">JD</div>
                 </div>
                 <div class="p-6 sm:p-8 pt-14 sm:pt-16 space-y-5 sm:space-y-6 text-center sm:text-left">
                     <div>
-                        <h4 class="text-xl sm:text-2xl font-bold text-indigo-900">Juan Delgado</h4>
-                        <p class="text-amber-600 font-bold text-xs sm:text-sm uppercase tracking-tighter">Premium Explorer Edition</p>
+                        <h4 class="text-xl sm:text-2xl font-bold text-white">Juan Delgado</h4>
+                        <p class="text-amber-400 font-bold text-xs sm:text-sm uppercase tracking-tighter">Premium Explorer Edition</p>
                     </div>
-                    <div class="space-y-3 sm:space-y-4 text-sm sm:text-base text-slate-600 italic leading-relaxed">
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                        <p class="hidden sm:block">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+                    <div class="space-y-3 sm:space-y-4 text-sm sm:text-base text-slate-300 italic leading-relaxed">
+                        <p>Aventurero activo en la red Nexus Instant. Viajando por los puntos más emblemáticos para descubrir su historia de forma inmediata.</p>
+                        <p class="hidden sm:block">Miembro desde 2023. Explora el mundo conectado y guarda tus hitos en tu historial seguro.</p>
                     </div>
-                    <div class="pt-5 sm:pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <span class="text-xs sm:text-sm text-slate-400">juan.delgado@example.com</span>
-                        <button class="w-full sm:w-auto bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-sm">Ajustes de Perfil</button>
+                    <div class="pt-5 sm:pt-6 border-t border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <span class="text-xs sm:text-sm text-slate-400">juan.delgado@nexus.dev</span>
+                        <button class="w-full sm:w-auto bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded-lg font-bold hover:bg-indigo-500 hover:text-white transition-all text-sm">Ajustes de Perfil</button>
                     </div>
                 </div>
             </div>
@@ -176,16 +271,16 @@
     </main>
 
     <!-- BARRA DE NAVEGACIÓN INFERIOR -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-20 flex items-center justify-around px-4 z-[1000] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <button onclick="switchView('map-view')" id="nav-map-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 transition-all duration-300 active-tab">
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 h-20 flex items-center justify-around px-4 z-[1000] shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
+        <button onclick="switchView('map-view')" id="nav-map-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 hover:text-slate-200 transition-all duration-300 active-tab">
             <i data-lucide="map" class="w-6 h-6"></i>
             <span class="text-[10px] font-bold uppercase tracking-widest">Mapa</span>
         </button>
-        <button onclick="switchView('history-view')" id="nav-history-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 transition-all duration-300">
+        <button onclick="switchView('history-view')" id="nav-history-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 hover:text-slate-200 transition-all duration-300">
             <i data-lucide="history" class="w-6 h-6"></i>
-            <span class="text-[10px] font-bold uppercase tracking-widest">Viajes</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Historial</span>
         </button>
-        <button onclick="switchView('account-view')" id="nav-account-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 transition-all duration-300">
+        <button onclick="switchView('account-view')" id="nav-account-view" class="flex flex-col items-center justify-center flex-1 h-full gap-1 text-slate-400 hover:text-slate-200 transition-all duration-300">
             <i data-lucide="user" class="w-6 h-6"></i>
             <span class="text-[10px] font-bold uppercase tracking-widest">Perfil</span>
         </button>
@@ -196,6 +291,10 @@
 
     <script>
         let map;
+        let currentRouteLayer = null;
+        let markersList = []; // Array para guardar los marcadores y actualizarlos dinámicamente
+        let pendingTrip = null; // Guardará la información del viaje pendiente de confirmar
+        
         const defaultView = [40.4167, -3.7037];
         const defaultZoom = 6;
 
@@ -231,22 +330,216 @@
             }
         };
 
+        // Estado inicial del historial
+        let tripHistory = [
+            { origin: "Madrid", destName: 'Salamanca - Plaza Mayor', date: 'Octubre 2023', status: 'Completado', km: 214, city: 'Salamanca' },
+            { origin: "Bilbao", destName: 'Barcelona - Sagrada Familia', date: 'Julio 2023', status: 'Completado', km: 608, city: 'Barcelona' }
+        ];
+
         window.onload = function() {
             lucide.createIcons();
             initMap();
             renderSidebar();
+            populateSelects();
             addMarkers();
+            updatePopups(); // Calcular precios iniciales
+            renderHistory();
+            
+            // Escuchar cambios en el origen para recalcular los precios del mapa
+            document.getElementById('origen-select').addEventListener('change', updatePopups);
         };
 
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView(defaultView, defaultZoom);
             L.control.zoom({ position: 'topright' }).addTo(map);
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            // Mapa oscuro (Dark Mode Tiles de Carto)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; CARTO',
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
+        }
+
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast-enter p-3 rounded-lg shadow-xl text-sm font-bold flex items-center gap-2 pointer-events-auto border ${isError ? 'bg-red-900/90 text-red-200 border-red-700' : 'bg-slate-800/95 text-emerald-400 border-emerald-700'}`;
+            
+            const iconName = isError ? 'alert-circle' : 'check-circle-2';
+            toast.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function populateSelects() {
+            const originSelect = document.getElementById('origen-select');
+            const destSelect = document.getElementById('destino-select');
+            
+            let optionsHtml = '';
+            for (const city in pointsData) {
+                const optgroup = `<optgroup label="${city}" class="bg-slate-800 text-amber-400">`;
+                let options = '';
+                pointsData[city].locations.forEach(loc => {
+                    options += `<option value="${city}|${loc.name}" class="text-slate-200">${loc.name}</option>`;
+                });
+                optionsHtml += optgroup + options + `</optgroup>`;
+            }
+
+            originSelect.innerHTML = optionsHtml;
+            destSelect.innerHTML = optionsHtml;
+            
+            // Set different default values if possible
+            if(originSelect.options.length > 0) originSelect.selectedIndex = 0;
+            if(destSelect.options.length > 2) destSelect.selectedIndex = 2;
+        }
+
+        function updatePopups() {
+            const origVal = document.getElementById('origen-select').value;
+            if (!origVal) return;
+            
+            const [origCity, origLoc] = origVal.split('|');
+            const originData = pointsData[origCity].locations.find(l => l.name === origLoc);
+            const originCoords = L.latLng(originData.coords);
+
+            markersList.forEach(item => {
+                const locCoords = L.latLng(item.loc.coords);
+                const distKm = originCoords.distanceTo(locCoords) / 1000;
+                
+                // Calcular precio (10€ por cada 500km)
+                const precio = (distKm / 500) * 10;
+                const precioFormateado = distKm < 1 ? "Origen (Gratis)" : precio.toFixed(2) + " €";
+
+                // Plantilla HTML para el popup dinámico
+                const popupHtml = `
+                    <div class="text-center p-1 font-sans">
+                        <h4 class="font-bold text-white mb-1 text-sm border-b border-slate-600 pb-2">${item.loc.name}</h4>
+                        <p class="text-xs text-slate-300 mt-2">Viaje desde ${origCity}:</p>
+                        <span class="font-black text-amber-400 text-base drop-shadow-md">${precioFormateado}</span>
+                    </div>
+                `;
+                
+                item.marker.bindPopup(popupHtml);
+            });
+        }
+
+        function efectuarViaje() {
+            const origVal = document.getElementById('origen-select').value;
+            const destVal = document.getElementById('destino-select').value;
+            
+            if (origVal === destVal) {
+                showToast("El origen y el destino deben ser diferentes.", true);
+                return;
+            }
+
+            const [origCity, origLoc] = origVal.split('|');
+            const [destCity, destLoc] = destVal.split('|');
+
+            const originData = pointsData[origCity].locations.find(l => l.name === origLoc);
+            const destData = pointsData[destCity].locations.find(l => l.name === destLoc);
+
+            const latlngOrig = L.latLng(originData.coords);
+            const latlngDest = L.latLng(destData.coords);
+            
+            // Calcular distancia en Km
+            const distanceKm = Math.round(latlngOrig.distanceTo(latlngDest) / 1000);
+
+            // Trazar línea en el mapa
+            if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+            currentRouteLayer = L.polyline([originData.coords, destData.coords], {
+                color: '#fbbf24', 
+                weight: 3, 
+                dashArray: '5, 10'
+            }).addTo(map);
+
+            // Ajustar vista para ver todo el viaje
+            map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
+
+            // Preparar el viaje pero no guardarlo todavía
+            pendingTrip = {
+                origin: origCity,
+                destName: `${destCity} - ${destLoc}`,
+                date: new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+                status: 'Completado',
+                km: distanceKm,
+                city: destCity,
+                destData: destData
+            };
+
+            // Configurar y mostrar el menú modal
+            document.getElementById('modal-title').innerText = `Destino: ${destCity}`;
+            document.getElementById('modal-desc').innerText = `Ruta calculada: ${distanceKm} km desde ${origCity}`;
+            
+            // Generar QR con la API pública de qrserver
+            const qrData = encodeURIComponent(`NexusInstant-Destino:${destCity}-${destLoc}`);
+            document.getElementById('modal-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}&color=0f172a`;
+
+            document.getElementById('trip-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function cancelarViaje() {
+            document.getElementById('trip-modal').classList.add('hidden');
+            pendingTrip = null;
+            
+            // Borrar la ruta trazada si se cancela
+            if (currentRouteLayer) {
+                map.removeLayer(currentRouteLayer);
+                currentRouteLayer = null;
+            }
+            showToast("Viaje cancelado.", true);
+        }
+
+        function confirmarViaje() {
+            if (!pendingTrip) return;
+            
+            document.getElementById('trip-modal').classList.add('hidden');
+            
+            // Añadir al historial
+            tripHistory.unshift(pendingTrip);
+            renderHistory();
+            
+            showToast(`¡Viaje a ${pendingTrip.city} marcado como hecho!`);
+            
+            // Mostrar info del destino
+            showInfo(pendingTrip.city, pendingTrip.destData);
+            
+            pendingTrip = null;
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+            
+            tripHistory.forEach(trip => {
+                const statusColor = trip.status === 'Nuevo' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400';
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50 transition-colors">
+                        <td class="p-4">
+                            <p class="font-medium text-white">${trip.destName}</p>
+                            <p class="text-xs text-slate-400 mt-1">Desde: ${trip.origin}</p>
+                        </td>
+                        <td class="p-4 text-amber-400 font-bold">${trip.km} km</td>
+                        <td class="p-4 text-slate-400 capitalize">${trip.date}</td>
+                        <td class="p-4"><span class="px-3 py-1 ${statusColor} text-xs rounded-full font-bold uppercase tracking-wider">${trip.status}</span></td>
+                    </tr>
+                `;
+            });
+
+            // Actualizar Tarjetas de Estadísticas
+            const uniqueCities = new Set(tripHistory.map(t => t.city)).size;
+            const totalKm = tripHistory.reduce((acc, t) => acc + t.km, 0);
+            
+            document.getElementById('stat-trips').innerText = tripHistory.length;
+            document.getElementById('stat-cities').innerText = uniqueCities;
+            document.getElementById('stat-km').innerText = totalKm.toLocaleString();
         }
 
         function switchView(viewId) {
@@ -267,20 +560,20 @@
             
             for (const city in pointsData) {
                 const section = document.createElement('div');
-                section.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm";
+                section.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm";
                 
                 let buttonsHtml = '';
                 pointsData[city].locations.forEach(loc => {
                     buttonsHtml += `
                         <button onclick="focusLocation(${loc.coords[0]}, ${loc.coords[1]}, 15, '${city}', '${loc.name}', this)" 
-                                class="location-btn w-full text-left p-2 rounded-lg hover:bg-indigo-50 text-sm border border-transparent transition-all">
+                                class="location-btn w-full text-left p-2 rounded-lg hover:bg-slate-700 text-slate-300 text-sm border border-transparent transition-all">
                             ${loc.name}
                         </button>
                     `;
                 });
 
                 section.innerHTML = `
-                    <h2 class="font-black text-xs mb-3 flex items-center gap-2 text-indigo-900 uppercase tracking-tighter">
+                    <h2 class="font-black text-xs mb-3 flex items-center gap-2 text-white uppercase tracking-tighter">
                         <span class="text-amber-500 italic">●</span> ${city}
                     </h2>
                     <div class="space-y-1">${buttonsHtml}</div>
@@ -290,16 +583,35 @@
         }
 
         function addMarkers() {
+            // Icono personalizado: Azul índigo (complementario al ámbar)
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div class="w-5 h-5 bg-indigo-500 rounded-full border-[3px] border-slate-900 shadow-[0_0_15px_rgba(99,102,241,0.6)] animate-pulse hover:scale-125 transition-transform duration-300"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10], // Centrar el icono sobre la coordenada
+                popupAnchor: [0, -12] // Desplazar el popup un poco hacia arriba
+            });
+
+            // Limpiamos la lista de marcadores
+            markersList = [];
+
             for (const city in pointsData) {
                 pointsData[city].locations.forEach(loc => {
-                    const marker = L.marker(loc.coords).addTo(map);
-                    marker.on('click', () => showInfo(city, loc));
+                    // Crear el marcador con el icono personalizado
+                    const marker = L.marker(loc.coords, { icon: customIcon }).addTo(map);
+                    
+                    // Guardamos la referencia para poder actualizar los popups luego
+                    markersList.push({ marker: marker, city: city, loc: loc });
+                    
+                    // Al hacer click, también actualizamos el panel lateral
+                    marker.on('click', () => {
+                        showInfo(city, loc);
+                    });
                 });
             }
         }
 
         function focusLocation(lat, lng, zoom, cityName, locName, btn) {
-            // Manejo visual de botones
             document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('dest-active'));
             if(btn) btn.classList.add('dest-active');
 
@@ -309,6 +621,10 @@
         }
 
         function resetView() {
+            if (currentRouteLayer) {
+                map.removeLayer(currentRouteLayer);
+                currentRouteLayer = null;
+            }
             map.flyTo(defaultView, defaultZoom);
             document.getElementById('info-panel').classList.add('hidden');
             document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('dest-active'));
@@ -321,10 +637,8 @@
             document.getElementById('info-desc').innerText = location.desc;
             panel.classList.remove('hidden');
             
-            // Re-renderizamos iconos de Lucide por si se acaba de mostrar el botón de cierre
             lucide.createIcons();
             
-            // En móviles, hacer scroll suave hacia la tarjeta de información
             if (window.innerWidth < 1280) {
                 setTimeout(() => {
                     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
