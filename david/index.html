@@ -230,19 +230,19 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const stations = [
-            { id: 1, name: "Nexus Madrid", coords: [40.4168, -3.7038] },
-            { id: 6, name: "Nexus London", coords: [51.5074, -0.1278] },
-            { id: 7, name: "Nexus Paris", coords: [48.8566, 2.3522] },
-            { id: 8, name: "Nexus Berlin", coords: [52.5200, 13.4050] },
-            { id: 9, name: "Nexus New York", coords: [40.7128, -74.0060] },
-            { id: 10, name: "Nexus Los Angeles", coords: [34.0522, -118.2437] },
-            { id: 11, name: "Nexus Mexico City", coords: [19.4326, -99.1332] },
-            { id: 12, name: "Nexus Tokyo", coords: [35.6762, 139.6503] },
-            { id: 13, name: "Nexus Singapore", coords: [1.3521, 103.8198] },
-            { id: 14, name: "Nexus Shanghai", coords: [31.2304, 121.4737] },
-            { id: 15, name: "Nexus São Paulo", coords: [-23.5505, -46.6333] },
-            { id: 16, name: "Nexus Sydney", coords: [-33.8688, 151.2093] },
-            { id: 17, name: "Nexus Cape Town", coords: [-33.9249, 18.4241] }
+            { id: 1, name: "Nexus Madrid", coords: [40.4168, -3.7038], congestion: 35 },
+            { id: 6, name: "Nexus London", coords: [51.5074, -0.1278], congestion: 82 },
+            { id: 7, name: "Nexus Paris", coords: [48.8566, 2.3522], congestion: 60 },
+            { id: 8, name: "Nexus Berlin", coords: [52.5200, 13.4050], congestion: 45 },
+            { id: 9, name: "Nexus New York", coords: [40.7128, -74.0060], congestion: 95 },
+            { id: 10, name: "Nexus Los Angeles", coords: [34.0522, -118.2437], congestion: 78 },
+            { id: 11, name: "Nexus Mexico City", coords: [19.4326, -99.1332], congestion: 88 },
+            { id: 12, name: "Nexus Tokyo", coords: [35.6762, 139.6503], congestion: 92 },
+            { id: 13, name: "Nexus Singapore", coords: [1.3521, 103.8198], congestion: 50 },
+            { id: 14, name: "Nexus Shanghai", coords: [31.2304, 121.4737], congestion: 85 },
+            { id: 15, name: "Nexus São Paulo", coords: [-23.5505, -46.6333], congestion: 70 },
+            { id: 16, name: "Nexus Sydney", coords: [-33.8688, 151.2093], congestion: 25 },
+            { id: 17, name: "Nexus Cape Town", coords: [-33.9249, 18.4241], congestion: 15 }
         ];
 
         let map, originStation, destinationStation;
@@ -279,12 +279,26 @@
                     markers.push({ id: station.id, offset, marker });
 
                     marker.on('click', function() {
+                        const isHigh = station.congestion >= 80;
+                        const isMed = station.congestion >= 50 && station.congestion < 80;
+                        const textColor = isHigh ? 'text-red-400' : (isMed ? 'text-yellow-400' : 'text-emerald-400');
+                        const bgColor = isHigh ? 'bg-red-500' : (isMed ? 'bg-yellow-500' : 'bg-emerald-500');
+
                         const popupContent = `
-                            <div class="p-1">
-                                <h3 class="font-bold text-sm text-white">${station.name}</h3>
-                                <div class="flex gap-2 mt-2">
-                                    <button onclick="selectRoute('origin', ${station.id})" class="flex-1 bg-cyan-600 text-white text-[10px] py-1.5 rounded font-bold uppercase">Origen</button>
-                                    <button onclick="selectRoute('destination', ${station.id})" class="flex-1 bg-lime-600 text-white text-[10px] py-1.5 rounded font-bold uppercase">Destino</button>
+                            <div class="p-1 min-w-[160px]">
+                                <h3 class="font-bold text-sm text-white mb-1">${station.name}</h3>
+                                
+                                <div class="flex justify-between items-center mt-3 mb-1">
+                                    <span class="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">Congestión</span>
+                                    <span class="text-[10px] font-bold ${textColor}">${station.congestion}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full mb-4 overflow-hidden">
+                                    <div class="h-full ${bgColor} transition-all duration-500" style="width: ${station.congestion}%"></div>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <button onclick="selectRoute('origin', ${station.id})" class="flex-1 bg-cyan-600 hover:bg-cyan-500 transition-colors text-white text-[10px] py-1.5 rounded font-bold uppercase">Origen</button>
+                                    <button onclick="selectRoute('destination', ${station.id})" class="flex-1 bg-lime-600 hover:bg-lime-500 transition-colors text-white text-[10px] py-1.5 rounded font-bold uppercase">Destino</button>
                                 </div>
                             </div>
                         `;
