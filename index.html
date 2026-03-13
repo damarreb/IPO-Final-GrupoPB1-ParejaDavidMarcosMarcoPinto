@@ -52,7 +52,7 @@
             z-index: 1;
         }
         .active-tab {
-            color: #fbbf24 !important; /* amber-400 con !important para asegurar que sobrescriba el azul */
+            color: #fbbf24;
         }
         .sidebar-scroll::-webkit-scrollbar {
             width: 4px;
@@ -85,13 +85,6 @@
 
         @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .toast-enter { animation: slideInUp 0.3s ease-out forwards; }
-
-        /* Estilo para la línea divisoria de la nav */
-        .nav-divider {
-            width: 1px;
-            height: 40%;
-            background-color: #1a1f45;
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans">
@@ -146,8 +139,8 @@
                                 <label class="block text-[10px] text-indigo-300/40 mb-1.5 font-black uppercase">Destino Final</label>
                                 <select id="destino-select" class="w-full bg-nexus-950 border border-nexus-800 rounded-xl p-3 text-sm text-white focus:border-indigo-500 focus:outline-none transition-all"></select>
                             </div>
-                            <!-- Botón actualizado a color Ámbar -->
-                            <button onclick="efectuarViaje()" class="w-full py-4 bg-amber-500 text-nexus-950 rounded-xl font-black hover:bg-amber-400 transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest flex justify-center items-center gap-2">
+                            
+                            <button onclick="efectuarViaje()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-black hover:bg-indigo-500 transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest flex justify-center items-center gap-2">
                                 Iniciar Viaje <i data-lucide="zap" class="w-4 h-4"></i>
                             </button>
                         </div>
@@ -200,16 +193,14 @@
         </section>
     </main>
 
-    <!-- Barra de Navegación con línea divisoria -->
+    <!-- Barra de Navegación Original -->
     <nav class="fixed bottom-0 left-0 right-0 bg-nexus-900/80 backdrop-blur-xl border-t border-nexus-800 h-20 flex items-center justify-center z-[1000]">
-        <button onclick="switchView('map-view')" id="nav-map-view" class="flex-1 flex flex-col items-center gap-1 text-indigo-500 active-tab transition-all">
+        <button onclick="switchView('map-view')" id="nav-map-view" class="flex-1 flex flex-col items-center gap-1 text-indigo-300/30 active-tab transition-all">
             <i data-lucide="map" class="w-6 h-6"></i>
             <span class="text-[9px] font-black uppercase">Mapa</span>
         </button>
         
-        <div class="nav-divider"></div>
-        
-        <button onclick="switchView('history-view')" id="nav-history-view" class="flex-1 flex flex-col items-center gap-1 text-indigo-500 transition-all">
+        <button onclick="switchView('history-view')" id="nav-history-view" class="flex-1 flex flex-col items-center gap-1 text-indigo-300/30 transition-all">
             <i data-lucide="database" class="w-6 h-6"></i>
             <span class="text-[9px] font-black uppercase">Datos</span>
         </button>
