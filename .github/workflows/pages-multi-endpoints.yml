@@ -24,8 +24,10 @@ jobs:
         run: |
           if [ "${GITHUB_REF_NAME}" = "boceto-marco" ]; then
             echo "folder=marco" >> "$GITHUB_OUTPUT"
-          else
+          else if ["${GITHUB_REF_NAME}" = "boceto-david"]; then
             echo "folder=david" >> "$GITHUB_OUTPUT"
+          else
+            echo "folder=main" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build publish directory
@@ -78,7 +80,7 @@ jobs:
                 <h1>Entradas disponibles</h1>
                 <p>Selecciona qué versión quieres abrir:</p>
                 <ul>
-                  <li><a href="./main/">Protitpo final</a></li>
+                  <li><a href="./main/">Protipo Final</a></li>
                   <li><a href="./david/">Boceto David</a></li>
                   <li><a href="./marco/">Boceto Marco</a></li>
                 </ul>
