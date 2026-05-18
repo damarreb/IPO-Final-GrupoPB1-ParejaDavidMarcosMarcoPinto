@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Proyecto</title>
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/purecss@3.0.0/build/pure-min.css"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+			integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+			crossorigin=""
+		/>
+		<link rel="stylesheet" href="./index.css" />
+		<script
+			defer
+			src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+			integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+			crossorigin=""
+		></script>
+		<script defer src="./index.js"></script>
+	</head>
+	<body>
+		<main id="app" class="app">
+			<header class="app-header panel">
+				<table width="100%">
+					<tr>
+						<td width="32">
+							<img
+								src="./assets/icons/logo.png"
+								alt="Logo de la aplicacion"
+								width="24"
+								height="24"
+							/>
+						</td>
+						<td>
+							<p class="label-strong">Nexus Instant</p>
+						</td>
+						<td align="right" data-header-price-wrap>
+							<p class="label-strong" data-header-price>Precio: --</p>
+						</td>
+					</tr>
+				</table>
+			</header>
+			<section class="screens">
+				<section
+					id="screen-viajar"
+					class="screen panel is-active"
+					data-screen="viajar"
+					aria-hidden="false"
+				>
+					<div class="panel profile-card">
+						<div data-map></div>
+					</div>
+					<div class="panel profile-card">
+						<table width="100%">
+							<tr>
+								<td>
+									<p class="label-strong">
+										Origen: <span data-viaje="origen"></span>
+									</p>
+								</td>
+								<td align="right">
+									<button
+										type="button"
+										class="pure-button btn-icon"
+										data-action="buscar-origen"
+									>
+										v
+									</button>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<p class="label-strong">
+										Destino: <span data-viaje="destino"></span>
+									</p>
+								</td>
+								<td align="right">
+									<button
+										type="button"
+										class="pure-button btn-icon"
+										data-action="buscar-destino"
+									>
+										v
+									</button>
+								</td>
+							</tr>
+						</table>
+					</div>
+					<button
+						type="button"
+						class="pure-button btn-accent"
+						data-action="iniciar-viaje"
+						disabled
+					>
+						Viajar
+					</button>
+				</section>
+				<section
+					id="screen-busqueda"
+					class="screen panel"
+					data-screen="busqueda"
+					aria-hidden="true"
+				>
+					<p class="label-strong">Buscar cabina</p>
+					<div class="panel profile-card">
+						<div class="profile-card pure-menu-scrollable" data-cabina-list></div>
+					</div>
+				</section>
+				<section
+					id="screen-qr"
+					class="screen panel"
+					data-screen="qr"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+                        <img
+                            src="./assets/icons/qr.png"
+                            alt="Codigo QR"
+                            width="220"
+                            height="220"
+                        />
+                        <button
+                            type="button"
+                            class="pure-button btn-accent"
+                            data-action="confirmar-viaje"
+                        >
+                            Confirmar
+                        </button>
+					</div>
+					<button
+						type="button"
+						class="pure-button btn-icon"
+						data-action="volver-viaje"
+					>
+						Volver
+					</button>
+				</section>
+				<section
+					id="screen-viaje-exito"
+					class="screen panel"
+					data-screen="viaje-exito"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<p class="label-strong">Viaje realizado</p>
+						<p class="label">El viaje se ha realizado con exito.</p>
+						<button
+							type="button"
+							class="pure-button btn-accent"
+							data-action="valorar"
+						>
+							Valorar
+						</button>
+					</div>
+					<button
+						type="button"
+						class="pure-button btn-icon"
+						data-action="finalizar-viaje"
+					>
+						Finalizar
+					</button>
+				</section>
+				<section
+					id="screen-valoracion"
+					class="screen panel"
+					data-screen="valoracion"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<img
+							src="./assets/icons/travel.png"
+							alt="Imagen de cabina"
+							width="220"
+							height="220"
+							data-cabina-image
+						/>
+					</div>
+					<div class="panel">
+						<table width="100%" data-rating-stars>
+							<tr>
+								<td align="center">
+									<button
+										type="button"
+										class="pure-button btn-primary"
+										data-star="1"
+										aria-label="1 estrella"
+									>
+											<img
+												class="nav-icon"
+												src="./assets/icons/star.png"
+												alt=""
+												width="24"
+												height="24"
+											/>
+									</button>
+								</td>
+								<td align="center">
+									<button
+										type="button"
+										class="pure-button btn-primary"
+										data-star="2"
+										aria-label="2 estrellas"
+									>
+											<img
+												class="nav-icon"
+												src="./assets/icons/star.png"
+												alt=""
+												width="24"
+												height="24"
+											/>
+									</button>
+								</td>
+								<td align="center">
+									<button
+										type="button"
+										class="pure-button btn-primary"
+										data-star="3"
+										aria-label="3 estrellas"
+									>
+											<img
+												class="nav-icon"
+												src="./assets/icons/star.png"
+												alt=""
+												width="24"
+												height="24"
+											/>
+									</button>
+								</td>
+								<td align="center">
+									<button
+										type="button"
+										class="pure-button btn-primary"
+										data-star="4"
+										aria-label="4 estrellas"
+									>
+											<img
+												class="nav-icon"
+												src="./assets/icons/star.png"
+												alt=""
+												width="24"
+												height="24"
+											/>
+									</button>
+								</td>
+								<td align="center">
+									<button
+										type="button"
+										class="pure-button btn-primary"
+										data-star="5"
+										aria-label="5 estrellas"
+									>
+											<img
+												class="nav-icon"
+												src="./assets/icons/star.png"
+												alt=""
+												width="24"
+												height="24"
+											/>
+									</button>
+								</td>
+							</tr>
+						</table>
+					</div>
+					<button
+						type="button"
+						class="pure-button btn-accent"
+						data-action="confirmar-valoracion"
+					>
+						Valorar
+					</button>
+				</section>
+				<section
+					id="screen-streetview"
+					class="screen panel"
+					data-screen="streetview"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<div id="streetview"></div>
+					</div>
+					<button
+						type="button"
+						class="pure-button btn-icon"
+						data-action="volver-streetview"
+					>
+						Volver
+					</button>
+				</section>
+				<section
+					id="screen-historial"
+					class="screen panel"
+					data-screen="historial"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<p class="label-strong">
+							Viajes realizados: <span data-historial="viajes"></span>
+						</p>
+						<p class="label">
+							Kilometros recorridos: <span data-historial="kilometros"></span>
+						</p>
+					</div>
+					<div class="panel profile-card">
+						<div class="profile-card pure-menu-scrollable" data-trip-list></div>
+					</div>
+				</section>
+				<section
+					id="screen-datos"
+					class="screen panel"
+					data-screen="datos"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<p class="label-strong">Nombre: <span data-profile="nombre"></span></p>
+						<p class="label">Nº Tarjeta: <span data-profile="tarjeta"></span></p>
+						<p class="label">CVV: <span data-profile="cvv"></span></p>
+					</div>
+					<button type="button" class="pure-button btn-accent" data-action="editar">
+						Cambiar
+					</button>
+				</section>
+				<section
+					id="screen-editar"
+					class="screen panel"
+					data-screen="editar"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<p class="label-strong">Cambios de Perfil</p>
+						<label class="label" for="perfil-nombre">Nombre</label>
+						<input
+							id="perfil-nombre"
+							class="textbox"
+							type="text"
+							data-profile="nombre"
+						/>
+						<label class="label" for="perfil-tarjeta">Nº Tarjeta</label>
+						<input
+							id="perfil-tarjeta"
+							class="textbox"
+							type="text"
+							data-profile="tarjeta"
+						/>
+						<label class="label" for="perfil-cvv">CVV</label>
+						<input
+							id="perfil-cvv"
+							class="textbox"
+							type="text"
+							data-profile="cvv"
+						/>
+					</div>
+					<div class="profile-card">
+						<button type="button" class="pure-button btn-icon" data-action="cancelar">
+							Atras
+						</button>
+						<button type="button" class="pure-button btn-accent" data-action="guardar">
+							Guardar cambios
+						</button>
+					</div>
+				</section>
+				<section
+					id="screen-exito"
+					class="screen panel"
+					data-screen="exito"
+					aria-hidden="true"
+				>
+					<div class="panel profile-card">
+						<p class="label-strong">Cambios guardados</p>
+						<p class="label">Los cambios se han guardado correctamente.</p>
+					</div>
+					<button type="button" class="pure-button btn-accent" data-action="volver">
+						Volver
+					</button>
+				</section>
+				<section
+					id="screen-factura"
+					class="screen panel"
+					data-screen="factura"
+					aria-hidden="true"
+				>
+					<p class="label-strong">Factura</p>
+					<div class="panel profile-card">
+						<p class="label">
+							Fecha y hora: <span data-factura="fechaHora"></span>
+						</p>
+						<p class="label">
+							Cabina de origen: <span data-factura="origen"></span>
+						</p>
+						<p class="label">
+							Cabina de destino: <span data-factura="destino"></span>
+						</p>
+						<p class="label">Precio: <span data-factura="precio"></span></p>
+						<p class="label">
+							Nombre del viajero: <span data-factura="viajero"></span>
+						</p>
+						<p class="label">
+							Tarjeta de pago: <span data-factura="tarjeta"></span>
+						</p>
+					</div>
+					<button
+						type="button"
+						class="pure-button btn-icon"
+						data-action="volver-historial"
+					>
+						Atras
+					</button>
+				</section>
+			</section>
+			<footer class="footer-nav panel" aria-label="Navegacion">
+				<button
+					type="button"
+					class="pure-button nav-button btn-icon is-active"
+					data-target="viajar"
+					data-icon="./assets/icons/travel.png"
+					data-icon-active="./assets/icons/travel-active.png"
+					aria-current="page"
+					aria-label="Viajar"
+				>
+					<img
+						class="nav-icon"
+						src="./assets/icons/travel-active.png"
+						alt=""
+						width="24"
+						height="24"
+					/>
+				</button>
+				<button
+					type="button"
+					class="pure-button nav-button btn-icon"
+					data-target="historial"
+					data-icon="./assets/icons/history.png"
+					data-icon-active="./assets/icons/history-active.png"
+					aria-label="Historial"
+				>
+					<img
+						class="nav-icon"
+						src="./assets/icons/history.png"
+						alt=""
+						width="24"
+						height="24"
+					/>
+				</button>
+				<button
+					type="button"
+					class="pure-button nav-button btn-icon"
+					data-target="datos"
+					data-icon="./assets/icons/user.png"
+					data-icon-active="./assets/icons/user-active.png"
+					aria-label="Datos personales"
+				>
+					<img
+						class="nav-icon"
+						src="./assets/icons/user.png"
+						alt=""
+						width="24"
+						height="24"
+					/>
+				</button>
+			</footer>
+		</main>
+	</body>
+</html>
