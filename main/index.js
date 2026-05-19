@@ -15,7 +15,7 @@ const navTargetByScreen = {
 };
 const perfil = {
 	nombre: "Usuario",
-	tarjeta: "0000 0000 0000 0000",
+	tarjeta: "0000000000000000",
 	cvv: "000",
 };
 const cabinaImageBase = "./assets/images/cabinas/";
@@ -112,6 +112,10 @@ const streetViewState = {
 let tipoBusqueda = null;
 let activePopupCabinaId = null;
 const mapCabinaMarkers = new Map();
+let mapColors = null;
+let routeLine = null;
+let routeAnimationFrame = null;
+let routeDashOffset = 0;
 const viajes = [
 ];
 let viajeSeleccionado = viajes[0] ?? null;
@@ -207,6 +211,8 @@ const renderViaje = () => {
 			headerPriceLabel.textContent = "Precio: --";
 		}
 	}
+
+	renderSelectedCabinas();
 };
 
 const renderRatingStars = () => {
@@ -490,6 +496,88 @@ const seleccionarCabinaDesdePopup = (cabinaId, tipo) => {
 	}
 };
 
+const getThemeColor = (name, fallback) =>
+	getComputedStyle(document.documentElement)
+		.getPropertyValue(name)
+		.trim() || fallback;
+
+const setMarkerColor = (marker, color) => {
+	if (!marker || !color) {
+		return;
+	}
+	marker.setStyle({ color, fillColor: color });
+};
+
+const stopRouteAnimation = () => {
+	if (routeAnimationFrame) {
+		cancelAnimationFrame(routeAnimationFrame);
+	}
+	routeAnimationFrame = null;
+	routeDashOffset = 0;
+};
+
+const startRouteAnimation = () => {
+	if (!routeLine || routeAnimationFrame) {
+		return;
+	}
+	const step = () => {
+		if (!routeLine) {
+			return;
+		}
+		routeDashOffset = (routeDashOffset - 1) % 24;
+		routeLine.setStyle({ dashOffset: `${routeDashOffset}` });
+		routeAnimationFrame = requestAnimationFrame(step);
+	};
+	routeAnimationFrame = requestAnimationFrame(step);
+};
+
+const renderRouteLine = () => {
+	if (!mapa || !mapColors) {
+		return;
+	}
+	if (!viajeActual.origen || !viajeActual.destino) {
+		if (routeLine) {
+			mapa.removeLayer(routeLine);
+			routeLine = null;
+		}
+		stopRouteAnimation();
+		return;
+	}
+	const latlngs = [
+		[viajeActual.origen.lat, viajeActual.origen.lng],
+		[viajeActual.destino.lat, viajeActual.destino.lng],
+	];
+	if (!routeLine) {
+		routeLine = L.polyline(latlngs, {
+			color: mapColors.ruta,
+			weight: 3,
+			dashArray: "8 12",
+			dashOffset: "0",
+			lineCap: "round",
+		}).addTo(mapa);
+	} else {
+		routeLine.setLatLngs(latlngs);
+		routeLine.setStyle({ color: mapColors.ruta });
+	}
+	startRouteAnimation();
+};
+
+const renderSelectedCabinas = () => {
+	if (!mapa || !mapColors) {
+		return;
+	}
+	mapCabinaMarkers.forEach((marker, cabinaId) => {
+		let color = mapColors.default;
+		if (viajeActual.origen?.id === cabinaId) {
+			color = mapColors.origen;
+		} else if (viajeActual.destino?.id === cabinaId) {
+			color = mapColors.destino;
+		}
+		setMarkerColor(marker, color);
+	});
+	renderRouteLine();
+};
+
 const initMapa = () => {
 	const mapElement = document.querySelector("[data-map]");
 	if (!mapElement || typeof L === "undefined") {
@@ -504,16 +592,20 @@ const initMapa = () => {
 		attribution: "&copy; OpenStreetMap contributors",
 	}).addTo(map);
 
-	const accent =
-		getComputedStyle(document.documentElement)
-			.getPropertyValue("--color-accent-primary")
-			.trim() || "#4f5aff";
+	const accent = getThemeColor("--color-accent-primary", "#4f5aff");
+	const secondary = getThemeColor("--color-accent-secondary", "#ffca00");
+	mapColors = {
+		default: accent,
+		origen: secondary,
+		destino: secondary,
+		ruta: secondary,
+	};
 
 	cabinas.forEach((cabina) => {
 		const marker = L.circleMarker([cabina.lat, cabina.lng], {
 			radius: 6,
-			color: accent,
-			fillColor: accent,
+			color: mapColors.default,
+			fillColor: mapColors.default,
 			fillOpacity: 1,
 		}).addTo(map);
 		marker.bindPopup(buildCabinaPopup(cabina));
@@ -571,10 +663,17 @@ const renderHistorial = () => {
 		const actionButton = document.createElement("button");
 		actionButton.type = "button";
 		actionButton.className = "pure-button btn-icon";
-		actionButton.textContent = "I";
 		actionButton.setAttribute("data-action", "factura");
 		actionButton.setAttribute("data-trip-id", viaje.id);
 		actionButton.setAttribute("aria-label", "Ver factura");
+
+		const actionIcon = document.createElement("img");
+		actionIcon.className = "nav-icon";
+		actionIcon.src = "./assets/icons/bill.png";
+		actionIcon.alt = "";
+		actionIcon.width = 20;
+		actionIcon.height = 20;
+		actionButton.appendChild(actionIcon);
 
 		infoCell.appendChild(title);
 		infoCell.appendChild(date);
@@ -604,6 +703,15 @@ buttons.forEach((button) => {
 	});
 });
 
+const perfilForm = document.querySelector("[data-profile-form]");
+if (perfilForm) {
+	perfilForm.addEventListener("submit", (event) => {
+		event.preventDefault();
+		savePerfil();
+		setActiveScreen("exito");
+	});
+}
+
 document.addEventListener("click", (event) => {
 	const button = event.target.closest("[data-action]");
 	if (!button) {
@@ -619,11 +727,6 @@ document.addEventListener("click", (event) => {
 	if (action === "cancelar") {
 		loadPerfil();
 		setActiveScreen("datos");
-		return;
-	}
-	if (action === "guardar") {
-		savePerfil();
-		setActiveScreen("exito");
 		return;
 	}
 	if (action === "volver") {
@@ -736,4 +839,5 @@ renderHistorial();
 renderFactura(viajeSeleccionado);
 bindRatingStars();
 mapa = initMapa();
+renderSelectedCabinas();
 setActiveScreen(defaultScreen);

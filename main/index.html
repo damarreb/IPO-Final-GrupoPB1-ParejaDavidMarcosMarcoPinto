@@ -322,38 +322,71 @@
 					data-screen="editar"
 					aria-hidden="true"
 				>
-					<div class="panel profile-card">
-						<p class="label-strong">Cambios de Perfil</p>
-						<label class="label" for="perfil-nombre">Nombre</label>
-						<input
-							id="perfil-nombre"
-							class="textbox"
-							type="text"
-							data-profile="nombre"
-						/>
-						<label class="label" for="perfil-tarjeta">Nº Tarjeta</label>
-						<input
-							id="perfil-tarjeta"
-							class="textbox"
-							type="text"
-							data-profile="tarjeta"
-						/>
-						<label class="label" for="perfil-cvv">CVV</label>
-						<input
-							id="perfil-cvv"
-							class="textbox"
-							type="text"
-							data-profile="cvv"
-						/>
-					</div>
-					<div class="profile-card">
-						<button type="button" class="pure-button btn-icon" data-action="cancelar">
-							Atrás
-						</button>
-						<button type="button" class="pure-button btn-accent" data-action="guardar">
-							Guardar cambios
-						</button>
-					</div>
+					<form class="profile-form" data-profile-form>
+						<div class="panel profile-card">
+							<p class="label-strong">Cambios de Perfil</p>
+							<label class="label" for="perfil-nombre">Nombre</label>
+							<input
+								id="perfil-nombre"
+								class="textbox"
+								type="text"
+								name="nombre"
+								data-profile="nombre"
+								required
+								autocomplete="name"
+								aria-describedby="error-nombre"
+							/>
+							<p class="field-error" id="error-nombre">
+								El nombre no puede estar vacio.
+							</p>
+							<label class="label" for="perfil-tarjeta">Nº Tarjeta</label>
+							<input
+								id="perfil-tarjeta"
+								class="textbox"
+								type="text"
+								name="tarjeta"
+								data-profile="tarjeta"
+								inputmode="numeric"
+								autocomplete="cc-number"
+								pattern="(?:[0-9] *){15}[0-9]"
+								required
+								aria-describedby="error-tarjeta"
+							/>
+							<p class="field-error" id="error-tarjeta">
+								La tarjeta debe tener 16 digitos.
+							</p>
+							<label class="label" for="perfil-cvv">CVV</label>
+							<input
+								id="perfil-cvv"
+								class="textbox"
+								type="text"
+								name="cvv"
+								data-profile="cvv"
+								inputmode="numeric"
+								autocomplete="cc-csc"
+								pattern="[0-9]{3}"
+								minlength="3"
+								maxlength="3"
+								required
+								aria-describedby="error-cvv"
+							/>
+							<p class="field-error" id="error-cvv">
+								El CVV debe tener 3 digitos.
+							</p>
+						</div>
+						<div class="profile-card">
+							<button
+								type="button"
+								class="pure-button btn-icon"
+								data-action="cancelar"
+							>
+								Atrás
+							</button>
+							<button type="submit" class="pure-button btn-accent">
+								Guardar cambios
+							</button>
+						</div>
+					</form>
 				</section>
 				<section
 					id="screen-exito"
