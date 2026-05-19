@@ -52,7 +52,7 @@
 			<section class="screens">
 				<section
 					id="screen-viajar"
-					class="screen panel is-active"
+					class="screen is-active"
 					data-screen="viajar"
 					aria-hidden="false"
 				>
@@ -60,40 +60,20 @@
 						<div data-map></div>
 					</div>
 					<div class="panel profile-card">
-						<table width="100%">
-							<tr>
-								<td>
-									<p class="label-strong">
-										Origen: <span data-viaje="origen"></span>
-									</p>
-								</td>
-								<td align="right">
-									<button
-										type="button"
-										class="pure-button btn-icon"
-										data-action="buscar-origen"
-									>
-										v
-									</button>
-								</td>
-							</tr>
-							<tr>
-								<td>
-									<p class="label-strong">
-										Destino: <span data-viaje="destino"></span>
-									</p>
-								</td>
-								<td align="right">
-									<button
-										type="button"
-										class="pure-button btn-icon"
-										data-action="buscar-destino"
-									>
-										v
-									</button>
-								</td>
-							</tr>
-						</table>
+                        <button
+                            type="button"
+                            class="pure-button btn-icon"
+                            data-action="buscar-origen"
+                        >
+                            Origen: <span data-viaje="origen"></span>
+                        </button>
+                        <button
+                            type="button"
+                            class="pure-button btn-icon"
+                            data-action="buscar-destino"
+                        >
+                            Destino: <span data-viaje="destino"></span>
+                        </button>
 					</div>
 					<button
 						type="button"
@@ -106,7 +86,7 @@
 				</section>
 				<section
 					id="screen-busqueda"
-					class="screen panel"
+					class="screen"
 					data-screen="busqueda"
 					aria-hidden="true"
 				>
@@ -114,10 +94,17 @@
 					<div class="panel profile-card">
 						<div class="profile-card pure-menu-scrollable" data-cabina-list></div>
 					</div>
+					<button
+						type="button"
+						class="pure-button btn-error"
+						data-action="volver-busqueda"
+					>
+						Volver
+					</button>
 				</section>
 				<section
 					id="screen-qr"
-					class="screen panel"
+					class="screen"
 					data-screen="qr"
 					aria-hidden="true"
 				>
@@ -130,23 +117,24 @@
                         />
                         <button
                             type="button"
-                            class="pure-button btn-accent"
+                            class="pure-button btn-success"
                             data-action="confirmar-viaje"
                         >
                             Confirmar
                         </button>
 					</div>
-					<button
-						type="button"
-						class="pure-button btn-icon"
-						data-action="volver-viaje"
-					>
-						Volver
-					</button>
+                    <button
+                        type="button"
+                        class="pure-button btn-error"
+                        data-action="volver-viaje"
+                    >
+                        Volver
+                    </button>
+
 				</section>
 				<section
 					id="screen-viaje-exito"
-					class="screen panel"
+					class="screen"
 					data-screen="viaje-exito"
 					aria-hidden="true"
 				>
@@ -171,7 +159,7 @@
 				</section>
 				<section
 					id="screen-valoracion"
-					class="screen panel"
+					class="screen"
 					data-screen="valoracion"
 					aria-hidden="true"
 				>
@@ -280,7 +268,7 @@
 				</section>
 				<section
 					id="screen-streetview"
-					class="screen panel"
+					class="screen"
 					data-screen="streetview"
 					aria-hidden="true"
 				>
@@ -297,7 +285,7 @@
 				</section>
 				<section
 					id="screen-historial"
-					class="screen panel"
+					class="screen"
 					data-screen="historial"
 					aria-hidden="true"
 				>
@@ -315,7 +303,7 @@
 				</section>
 				<section
 					id="screen-datos"
-					class="screen panel"
+					class="screen"
 					data-screen="datos"
 					aria-hidden="true"
 				>
@@ -330,7 +318,7 @@
 				</section>
 				<section
 					id="screen-editar"
-					class="screen panel"
+					class="screen"
 					data-screen="editar"
 					aria-hidden="true"
 				>
@@ -360,7 +348,7 @@
 					</div>
 					<div class="profile-card">
 						<button type="button" class="pure-button btn-icon" data-action="cancelar">
-							Atras
+							Atrás
 						</button>
 						<button type="button" class="pure-button btn-accent" data-action="guardar">
 							Guardar cambios
@@ -369,7 +357,7 @@
 				</section>
 				<section
 					id="screen-exito"
-					class="screen panel"
+					class="screen"
 					data-screen="exito"
 					aria-hidden="true"
 				>
@@ -383,7 +371,7 @@
 				</section>
 				<section
 					id="screen-factura"
-					class="screen panel"
+					class="screen"
 					data-screen="factura"
 					aria-hidden="true"
 				>
@@ -411,7 +399,7 @@
 						class="pure-button btn-icon"
 						data-action="volver-historial"
 					>
-						Atras
+						Atrás
 					</button>
 				</section>
 			</section>

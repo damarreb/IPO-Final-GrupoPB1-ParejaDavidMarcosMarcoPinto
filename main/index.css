@@ -10,6 +10,7 @@ body {
 	--color-surface-2: #0b0e36;
 	--color-surface-3: #0a0c1a;
 	--color-black: #000000;
+    --color-white: #ffffff;
 	--color-success: #10b981;
 	--color-error: #b91048;
 	--font-sans: "Inter", Arial, sans-serif;
@@ -21,7 +22,7 @@ body {
 	justify-content: center;
 	align-items: stretch;
 	background: var(--color-surface-2);
-	color: #ffffff;
+	color: var(--color-white);
 	font-family: var(--font-sans);
     font-size: 100%;
 }
@@ -52,6 +53,7 @@ body {
 .screen.is-active {
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
 	gap: 12px;
 }
 
@@ -89,18 +91,24 @@ a {
 	color: var(--color-black);
 }
 
+.btn-error {
+	background: var(--color-error);
+	color: var(--color-white);
+}
+
 .btn-icon {
 	background: var(--color-surface-1);
-	color: #ffffff;
+	color: var(--color-white);
 }
 
 .btn-primary {
 	background: var(--color-accent-primary);
-	color: #ffffff;
+	color: var(--color-white);
 }
 
 .btn-accent,
 .btn-success,
+.btn-error,
 .btn-icon,
 .btn-primary {
 	border: none;
@@ -111,7 +119,7 @@ a {
 
 .btn-primary:disabled {
 	background: var(--color-surface-1);
-	color: #ffffff;
+	color: var(--color-white);
 	opacity: 0.6;
 }
 
@@ -126,7 +134,7 @@ a {
 }
 
 .panel {
-	border: 1px solid #ffffff;
+	/*border: 1px solid #ffffff;*/
 	background: var(--color-surface-2);
 	border-radius: 8px;
 	padding: 0.75rem;
@@ -190,13 +198,13 @@ a {
 .label {
 	margin: 0;
 	font-weight: 400;
-	color: #ffffff;
+	color: var(--color-white);
 }
 
 .label-strong {
 	margin: 0;
 	font-weight: 700;
-	color: #ffffff;
+	color: var(--color-white);
 }
 
 .label-accent {
@@ -215,7 +223,7 @@ a {
 
 .leaflet-popup-content-wrapper {
 	background: var(--color-surface-2);
-	color: #ffffff;
+	color: var(--color-white);
 }
 
 .leaflet-popup-tip {
