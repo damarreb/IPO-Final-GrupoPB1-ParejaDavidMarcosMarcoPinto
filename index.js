@@ -650,6 +650,10 @@ document.addEventListener("click", (event) => {
 		openBusqueda("destino");
 		return;
 	}
+	if (action === "volver-busqueda") {
+		setActiveScreen("viajar");
+		return;
+	}
 	if (action === "seleccionar-cabina") {
 		seleccionarCabina(button.dataset.cabinaId);
 		return;
